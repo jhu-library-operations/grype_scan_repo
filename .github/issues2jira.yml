@@ -1,0 +1,4 @@
+jira_project: OPS
+jira_transition_state: Done
+jira_rest_endpoint: https://jhulibraries.atlassian.net
+close_jira_issue: true
