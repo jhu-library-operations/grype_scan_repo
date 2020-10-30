@@ -81,58 +81,84 @@ then
 	exit 0
 fi
 
+# let's create a temp file to hold the found images.
+makeDir=`mktemp -d`
+mkdir -p $makeDir
+imgList="$makeDir/imgList.txt"
+touch $imgList
+
+if [ $dryrun -eq 1 ]
+then	
+	echo "Image List: $imgList"
+fi
+
 for dFile in `find $PWD -name $dockerfile`
 do
-	echo "Found: $dFile"
+	if [ $dryrun -eq 1 ]
+	then
+		echo "Found: $dFile"
+	fi
 
 	dFileDir=`dirname $dFile`
 
 	# grab the list of images to grab from this file
 	for imgName in `cat $dFile | grep $imageline | sed -e "s/$imageline //g" | sed -e "s/ as .*$//"`
 	do
-		vulCount="0"
-		echo -ne "*** Telling docker to pull the image $imgName ..."
-		if [ $dryrun -eq 0 ]
-		then
-			docker pull $imgName >/dev/null 2>&1
-		else
-			echo -ne "\n*** DRYRUN: would have pulled $imgName... "
-		fi
-		echo -e "Done"
-		# transform slashes in the image name to underscores for the logfile name
-		imgLogName=`echo $imgName | sed -e 's/\//_/g'`
-		echo -ne "*** Scanning image with grype... "
-		#grype $imgName > ${dFileDir}/${imgLogName}.grypelog.txt 2>&1
-		#echo "grype $imgName -o json -q | tee ${dFileDir}/${imgLogName}.grypelog.json  |  jq -r \".matches\" | jq \". | length\""
-		if [ $dryrun -eq 0 ]
-		then
-			vulCount=`grype $imgName -o json -q | tee ${dFileDir}/${imgLogName}.grypelog.json  |  jq -r ".matches" | jq ". | length"`
-		else
-			vulCount=0
-			echo -ne "\n*** DRYRUN: Would have run the following: \n"
-			echo -ne "***        grype $imgName -o json -q | tee ${dFileDir}/${imgLogName}.grypelog.json ... "
-		fi
-		echo -e "Done."
-		if [ "$vulCount" == "" ]
-		then
-			echo -e "*** Error running grype.\n"
-			returnCode=2
-			continue
-		fi
-		if [ $dryrun -eq 0 ]
-		then
-			echo -e "*** Found $vulCount vulnerabilites. (Log saved to ${dFileDir}/${imgLogName}.grypelog.json)\n"
-		else
-			echo -e "*** DRYRUN: Scanning skipped.\n"
-		fi
-		if [ $vulCount -gt 0 ]
-		then
-			returnCode=1
-		fi
-	done	
+		# add the image name to the list
+		echo $imgName >> $imgList
+	done
 done
+
+# now let's try to clean up the file
+cat $imgList | sort -u > ${imgList}.sorted
+
+# now let's try to process just the images we found
+for imgName in `cat ${imgList}.sorted`
+do
+	vulCount="0"
+	echo -ne "*** Telling docker to pull the image $imgName ..."
+	if [ $dryrun -eq 0 ]
+	then
+		docker pull $imgName >/dev/null 2>&1
+	else
+		echo -ne "\n*** DRYRUN: would have pulled $imgName... "
+	fi
+	echo -e "Done"
+	# transform slashes in the image name to underscores for the logfile name
+	imgLogName=`echo $imgName | sed -e 's/\//_/g'`
+	echo -ne "*** Scanning image with grype... "
+	#grype $imgName > ${dFileDir}/${imgLogName}.grypelog.txt 2>&1
+	#echo "grype $imgName -o json -q | tee ${dFileDir}/${imgLogName}.grypelog.json  |  jq -r \".matches\" | jq \". | length\""
+	if [ $dryrun -eq 0 ]
+	then
+		vulCount=`grype $imgName -o json -q | tee ${imgLogName}.grypelog.json  |  jq -r ".matches" | jq ". | length"`
+	else
+		vulCount=0
+		echo -ne "\n*** DRYRUN: Would have run the following: \n"
+		echo -ne "***        grype $imgName -o json -q | tee ${imgLogName}.grypelog.json ... "
+	fi
+	echo -e "Done."
+	if [ "$vulCount" == "" ]
+	then
+		echo -e "*** Error running grype.\n"
+		returnCode=2
+		continue
+	fi
+	if [ $dryrun -eq 0 ]
+	then
+		echo -e "*** Found $vulCount vulnerabilites. (Log saved to ${imgLogName}.grypelog.json)\n"
+	else
+		echo -e "*** DRYRUN: Scanning skipped.\n"
+	fi
+	if [ $vulCount -gt 0 ]
+	then
+		returnCode=1
+	fi
+done	
 if [ "$returnCode" == "1" ]
 then
 	echo "Error: Vulnerabilities found."
 fi
+# clean up ourselves
+rm -rf $makeDir
 exit $returnCode
