@@ -5,6 +5,7 @@ dockerfile="Dockerfile"
 imageline="^FROM"
 install=0
 dryrun=0
+cleanup=0
 
 while [ $# -gt 0 ]
 do
@@ -23,10 +24,15 @@ do
 			install=1
 			shift
 			;;
+		-r)
+			cleanup=1
+			shift # past the arg
+			;;
 		-h|--help)
 			echo -e "\n$0: [-ci] [-h|--help]"
 			echo -e "\t-c         Scan for docker-compose.yml files instead of Dockerfiles"
 			echo -e "\t--dry-run  Does a dry run, doesn't pull images or scan."
+			echo -e "\t-r         Remove images after scan."
 			echo -e "\t-i         Install grype into ~/bin/ and exit."
 			echo -e "\t-h|--help  Display this help.\n"
 			exit 1
@@ -113,6 +119,11 @@ do
 			echo -ne "***        grype $imgName -o json -q | tee ${dFileDir}/${imgLogName}.grypelog.json ... "
 		fi
 		echo -e "Done."
+		if [ $cleanup -eq 1 ] && [ $dryrun -eq 0 ]
+		then
+			echo "*** Cleaning up image."
+			docker rmi $imgName
+		fi
 		if [ "$vulCount" == "" ]
 		then
 			echo -e "*** Error running grype.\n"
