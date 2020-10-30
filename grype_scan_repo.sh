@@ -7,7 +7,8 @@ install=0
 dryrun=0
 cleanup=0
 output=0 
-
+sevfilter="(Critical|High|Medium|Low|Unknown)"
+totalvulcount=0
 while [ $# -gt 0 ]
 do
 	key="$1"
@@ -38,14 +39,20 @@ do
 			output=1
 			shift # past the arg
 			;;
+		-s) 
+			sevfilter=$2
+			shift # the arg
+			shift # the value
+			;;
 		-h|--help)
 			echo -e "\n$0: [-ci] [-h|--help]"
-			echo -e "\t-c         Scan for docker-compose.yml files instead of Dockerfiles"
-			echo -e "\t-k         Scan for *.yml and *.yaml files (kubernetes) "
-			echo -e "\t--dry-run  Does a dry run, doesn't pull images or scan."
-			echo -e "\t-r         Remove images after scan."
-			echo -e "\t-o         Show the vulnerablility output on stdout"
-			echo -e "\t-i         Install grype into ~/bin/ and exit."
+			echo -e "\t-c          Scan for docker-compose.yml files instead of Dockerfiles"
+			echo -e "\t-k          Scan for *.yml and *.yaml files (kubernetes) "
+			echo -e "\t--dry-run   Does a dry run, doesn't pull images or scan."
+			echo -e "\t-r          Remove images after scan."
+			echo -e "\t-i          Install grype into ~/bin/ and exit."
+			echo -e "\t-s <filter> The severities to filter for, an egrep pattern. "
+			echo -e "\t              (default: '(Critical|High|Medium|Low|Unknown)'"
 			echo -e "\t-h|--help  Display this help.\n"
 			exit 1
 			;;
@@ -150,13 +157,14 @@ do
 	then
 		if [ $output -eq 0 ]
 		then
-			vulCount=`grype $imgName -q | tee ${imgLogName}.grypelog | tail -n +2 | wc -l `
+			vulCount=`grype $imgName -q | egrep $sevfilter | tee ${imgLogName}.grypelog | tail -n +2 | wc -l `
 		else
 			echo
-			grype $imgName -q | tee ${imgLogName}.grypelog | while read line; do echo -e "*** $line"; done
+			grype $imgName -q | egrep $sevfilter | tee ${imgLogName}.grypelog | while read line; do echo -e "*** $line"; done
 			vulCount=`cat ${imgLogName}.grypelog | tail -n +2 | wc -l`
 			echo -en "*** "
 		fi
+		totalvulcount=$((totalvulcount + vulCount))
 	else
 		vulCount=0
 		echo -ne "\n*** DRYRUN: Would have run the following: \n"
@@ -194,7 +202,7 @@ do
 done	
 if [ "$returnCode" == "1" ]
 then
-	echo "Error: Vulnerabilities found."
+	echo "Error: $totalvulcount Vulnerabilities found."
 fi
 # clean up ourselves
 rm -rf $makeDir
