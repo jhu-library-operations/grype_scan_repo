@@ -5,6 +5,7 @@ A wrapper around the grype command that should allow you to scan Dockerfiles or 
 ```
 ./grype_scan_repo.sh: [-ci] [-h|--help]
         -c         Scan for docker-compose.yml files instead of Dockerfiles
+        -k         Scan for *.yml and *.yaml files (kubernetes) 
         --dry-run  Does a dry run, doesn't pull images or scan.
         -i         Install grype into ~/bin/ and exit.
         -h|--help  Display this help.
