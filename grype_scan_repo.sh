@@ -157,9 +157,20 @@ do
 		returnCode=2
 		continue
 	fi
+	if [ $cleanup -eq 1 ] && [ $dryrun -eq 0 ]
+	then	
+		echo -e "*** Cleaning up image"
+		docker rmi $imgName > /dev/null 2>&1
+	fi
 	if [ $dryrun -eq 0 ]
 	then
-		echo -e "*** Found $vulCount vulnerabilites. (Log saved to ${imgLogName}.grypelog.json)\n"
+		if [ $vulCount -eq 0 ]
+		then
+			echo -e "*** No vulnerabilities found. \n"
+			rm -f ${imgLogName}.grypelog.json
+		else
+			echo -e "*** Found $vulCount vulnerabilites. (Log saved to ${imgLogName}.grypelog.json)\n"
+		fi
 	else
 		echo -e "*** DRYRUN: Scanning skipped.\n"
 	fi
@@ -167,6 +178,7 @@ do
 	then
 		returnCode=1
 	fi
+
 done	
 if [ "$returnCode" == "1" ]
 then
