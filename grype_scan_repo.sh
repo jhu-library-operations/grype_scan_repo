@@ -6,6 +6,7 @@ imageline="^FROM"
 install=0
 dryrun=0
 cleanup=0
+output=0 
 
 while [ $# -gt 0 ]
 do
@@ -33,12 +34,17 @@ do
 			cleanup=1
 			shift # past the arg
 			;;
+		-o)
+			output=1
+			shift # past the arg
+			;;
 		-h|--help)
 			echo -e "\n$0: [-ci] [-h|--help]"
 			echo -e "\t-c         Scan for docker-compose.yml files instead of Dockerfiles"
 			echo -e "\t-k         Scan for *.yml and *.yaml files (kubernetes) "
 			echo -e "\t--dry-run  Does a dry run, doesn't pull images or scan."
 			echo -e "\t-r         Remove images after scan."
+			echo -e "\t-o         Show the vulnerablility output on stdout"
 			echo -e "\t-i         Install grype into ~/bin/ and exit."
 			echo -e "\t-h|--help  Display this help.\n"
 			exit 1
@@ -129,7 +135,7 @@ cat $imgList | sort -u > ${imgList}.sorted
 for imgName in `cat ${imgList}.sorted`
 do
 	vulCount="0"
-	echo -ne "*** Telling docker to pull the image $imgName ..."
+	echo -ne "*** Telling docker to pull the image $imgName ... "
 	if [ $dryrun -eq 0 ]
 	then
 		docker pull $imgName >/dev/null 2>&1
@@ -139,12 +145,18 @@ do
 	echo -e "Done"
 	# transform slashes in the image name to underscores for the logfile name
 	imgLogName=`echo $imgName | sed -e 's/\//_/g'`
-	echo -ne "*** Scanning image with grype... "
-	#grype $imgName > ${dFileDir}/${imgLogName}.grypelog.txt 2>&1
-	#echo "grype $imgName -o json -q | tee ${dFileDir}/${imgLogName}.grypelog.json  |  jq -r \".matches\" | jq \". | length\""
+	echo -ne "*** Scanning image with grype ... "
 	if [ $dryrun -eq 0 ]
 	then
-		vulCount=`grype $imgName -o json -q | tee ${imgLogName}.grypelog.json  |  jq -r ".matches" | jq ". | length"`
+		if [ $output -eq 0 ]
+		then
+			vulCount=`grype $imgName -q | tee ${imgLogName}.grypelog | tail -n +2 | wc -l `
+		else
+			echo
+			grype $imgName -q | tee ${imgLogName}.grypelog | while read line; do echo -e "*** $line"; done
+			vulCount=`cat ${imgLogName}.grypelog | tail -n +2 | wc -l`
+			echo -en "*** "
+		fi
 	else
 		vulCount=0
 		echo -ne "\n*** DRYRUN: Would have run the following: \n"
