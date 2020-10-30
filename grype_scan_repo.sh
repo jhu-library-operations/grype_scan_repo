@@ -26,6 +26,7 @@ do
 		-h|--help)
 			echo -e "\n$0: [-ci] [-h|--help]"
 			echo -e "\t-c         Scan for docker-compose.yml files instead of Dockerfiles"
+			echo -e "\t--dry-run  Does a dry run, doesn't pull images or scan."
 			echo -e "\t-i         Install grype into ~/bin/ and exit."
 			echo -e "\t-h|--help  Display this help.\n"
 			exit 1
