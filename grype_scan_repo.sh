@@ -92,7 +92,7 @@ do
 	do
 		vulCount="0"
 		echo -ne "*** Telling docker to pull the image $imgName ..."
-		if [ ! $dryrun ]
+		if [ $dryrun -eq 0 ]
 		then
 			docker pull $imgName >/dev/null 2>&1
 		else
@@ -104,7 +104,7 @@ do
 		echo -ne "*** Scanning image with grype... "
 		#grype $imgName > ${dFileDir}/${imgLogName}.grypelog.txt 2>&1
 		#echo "grype $imgName -o json -q | tee ${dFileDir}/${imgLogName}.grypelog.json  |  jq -r \".matches\" | jq \". | length\""
-		if [ ! $dryrun ]
+		if [ $dryrun -eq 0 ]
 		then
 			vulCount=`grype $imgName -o json -q | tee ${dFileDir}/${imgLogName}.grypelog.json  |  jq -r ".matches" | jq ". | length"`
 		else
@@ -119,7 +119,7 @@ do
 			returnCode=2
 			continue
 		fi
-		if [ ! $dryrun ]
+		if [ $dryrun -eq 0 ]
 		then
 			echo -e "*** Found $vulCount vulnerabilites. (Log saved to ${dFileDir}/${imgLogName}.grypelog.json)\n"
 		else
