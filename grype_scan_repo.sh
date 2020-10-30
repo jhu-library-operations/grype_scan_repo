@@ -4,11 +4,16 @@ returnCode=0
 dockerfile="Dockerfile"
 imageline="^FROM"
 install=0
-	 
+dryrun=0
+
 while [ $# -gt 0 ]
 do
 	key="$1"
 	case "$key" in
+		--dry-run) 
+			dryrun=1
+			shift #past the arg
+			;;
 		-c)
 			dockerfile="docker-compose.yml"
 			imageline=".*image:"
@@ -86,31 +91,46 @@ do
 	do
 		vulCount="0"
 		echo -ne "*** Telling docker to pull the image $imgName ..."
-		docker pull $imgName >/dev/null 2>&1
+		if [ ! $dryrun ]
+		then
+			docker pull $imgName >/dev/null 2>&1
+		else
+			echo -ne "\n*** DRYRUN: would have pulled $imgName... "
+		fi
 		echo -e "Done"
 		# transform slashes in the image name to underscores for the logfile name
 		imgLogName=`echo $imgName | sed -e 's/\//_/g'`
 		echo -ne "*** Scanning image with grype... "
 		#grype $imgName > ${dFileDir}/${imgLogName}.grypelog.txt 2>&1
 		#echo "grype $imgName -o json -q | tee ${dFileDir}/${imgLogName}.grypelog.json  |  jq -r \".matches\" | jq \". | length\""
-		vulCount=`grype $imgName -o json -q | tee ${dFileDir}/${imgLogName}.grypelog.json  |  jq -r ".matches" | jq ". | length"`
-		
+		if [ ! $dryrun ]
+		then
+			vulCount=`grype $imgName -o json -q | tee ${dFileDir}/${imgLogName}.grypelog.json  |  jq -r ".matches" | jq ". | length"`
+		else
+			vulCount=0
+			echo -ne "\n*** DRYRUN: Would have run the following: \n"
+			echo -ne "***        grype $imgName -o json -q | tee ${dFileDir}/${imgLogName}.grypelog.json ... "
+		fi
 		echo -e "Done."
 		if [ "$vulCount" == "" ]
 		then
 			echo -e "*** Error running grype.\n"
-			returnCode=1
+			returnCode=2
 			continue
 		fi
-	       	echo -e "*** Found $vulCount vulnerabilites. (Log saved to ${dFileDir}/${imgLogName}.grypelog.json)\n"
-
-		if [ '$vulCount' > 0 ]
+		if [ ! $dryrun ]
+		then
+			echo -e "*** Found $vulCount vulnerabilites. (Log saved to ${dFileDir}/${imgLogName}.grypelog.json)\n"
+		else
+			echo -e "*** DRYRUN: Scanning skipped.\n"
+		fi
+		if [ $vulCount -gt 0 ]
 		then
 			returnCode=1
 		fi
 	done	
 done
-if [ "$returnCode" != "0" ]
+if [ "$returnCode" == "1" ]
 then
 	echo "Error: Vulnerabilities found."
 fi
