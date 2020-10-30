@@ -168,7 +168,7 @@ do
 	else
 		vulCount=0
 		echo -ne "\n*** DRYRUN: Would have run the following: \n"
-		echo -ne "***        grype $imgName -o json -q | tee ${imgLogName}.grypelog.json ... "
+		echo -ne "***        grype $imgName -q | tee ${imgLogName}.grypelog ... "
 	fi
 	echo -e "Done."
 	if [ "$vulCount" == "" ]
@@ -187,9 +187,9 @@ do
 		if [ $vulCount -eq 0 ]
 		then
 			echo -e "*** No vulnerabilities found. \n"
-			rm -f ${imgLogName}.grypelog.json
+			rm -f ${imgLogName}.grypelog
 		else
-			echo -e "*** Found $vulCount vulnerabilites. (Log saved to ${imgLogName}.grypelog.json)\n"
+			echo -e "*** Found $vulCount vulnerabilites. (Log saved to ${imgLogName}.grypelog)\n"
 		fi
 	else
 		echo -e "*** DRYRUN: Scanning skipped.\n"
