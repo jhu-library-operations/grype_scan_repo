@@ -1,10 +1,11 @@
 #!/bin/bash
 IFS=$(echo -en "\n\b")
 returnCode=0
-dockerfile="Dockerfile"
+dockerfile='.*\/Dockerfile'
 imageline="^FROM"
 install=0
 dryrun=0
+cleanup=0
 
 while [ $# -gt 0 ]
 do
@@ -15,18 +16,29 @@ do
 			shift #past the arg
 			;;
 		-c)
-			dockerfile="docker-compose.yml"
+			dockerfile='.*\/docker-compose.yml'
 			imageline=".*image:"
 			shift # past the arg
+			;;
+		-k)
+			dockerfile='.*.\(yml\|yaml\)'
+			imageline=".*image:"
+			shift #past the arg
 			;;
 		-i) 
 			install=1
 			shift
 			;;
+		-r)
+			cleanup=1
+			shift # past the arg
+			;;
 		-h|--help)
 			echo -e "\n$0: [-ci] [-h|--help]"
 			echo -e "\t-c         Scan for docker-compose.yml files instead of Dockerfiles"
+			echo -e "\t-k         Scan for *.yml and *.yaml files (kubernetes) "
 			echo -e "\t--dry-run  Does a dry run, doesn't pull images or scan."
+			echo -e "\t-r         Remove images after scan."
 			echo -e "\t-i         Install grype into ~/bin/ and exit."
 			echo -e "\t-h|--help  Display this help.\n"
 			exit 1
@@ -92,7 +104,8 @@ then
 	echo "Image List: $imgList"
 fi
 
-for dFile in `find $PWD -name $dockerfile`
+
+for dFile in `find $PWD -type f -regex $dockerfile`
 do
 	if [ $dryrun -eq 1 ]
 	then
