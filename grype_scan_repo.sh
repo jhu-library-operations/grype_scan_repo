@@ -98,6 +98,7 @@ then
 		rm -rf $makeDir
 		exit 1
 	fi
+	go clean -cache -modcache
 	chmod 700 ~/bin/grype
 
 	cd $oldDir
