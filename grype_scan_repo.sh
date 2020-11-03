@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 IFS=$(echo -en "\n\b")
 returnCode=0
 dockerfile='.*\/Dockerfile'
