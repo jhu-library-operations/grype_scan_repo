@@ -49,7 +49,7 @@ do
 			echo -e "\t-c          Scan for docker-compose.yml files instead of Dockerfiles"
 			echo -e "\t-k          Scan for *.yml and *.yaml files (kubernetes) "
 			echo -e "\t--dry-run   Does a dry run, doesn't pull images or scan."
-			echo -e "\t-r          Remove images after scan."
+			echo -e "\t-o          Show output instead of logging it."
 			echo -e "\t-i          Install grype into ~/bin/ and exit."
 			echo -e "\t-s <filter> The severities to filter for, an egrep pattern. "
 			echo -e "\t              (default: '(Critical|High|Medium|Low|Unknown)'"
@@ -98,12 +98,24 @@ then
 		rm -rf $makeDir
 		exit 1
 	fi
-	go clean -cache -modcache
 	chmod 700 ~/bin/grype
 
 	cd $oldDir
 	rm -rf $makeDir
 	echo -e "\nGrype has been successfully installed.\n"
+
+	echo -e "Installing crane for image pulls\n"
+	GO111MODULE=on go get -u github.com/google/go-containerregistry/cmd/crane
+	if [ $? -ne 0 ]
+	then	
+		echo "Error: Unable to build crane"
+		exit 1
+	fi
+
+	/bin/mv -v ~/go/bin/crane ~/bin
+	chmod 755 ~/bin/crane 
+	go clean -cache -modcache
+	
 	exit 0
 fi
 
@@ -142,26 +154,35 @@ cat $imgList | sort -u > ${imgList}.sorted
 # now let's try to process just the images we found
 for imgName in `cat ${imgList}.sorted`
 do
+	# transform slashes in the image name to underscores for the logfile name
+	imgLogName=`echo $imgName | sed -e 's/\//_/g' | sed -e 's/\:/_/g'`
+	
 	vulCount="0"
-	echo -ne "*** Telling docker to pull the image $imgName ... "
+	echo -ne "*** Trying to pull the image $imgName ... \n"
 	if [ $dryrun -eq 0 ]
 	then
-		docker pull $imgName >/dev/null 2>&1
+	
+		crane pull $imgName $makeDir/${imgLogName}.tar > /dev/null 2>&1 
+
+		if [ $? -ne 0 ]
+		then	
+			echo "Error: Unable to pull $imgName" >&2
+			exit 1
+		fi
 	else
-		echo -ne "\n*** DRYRUN: would have pulled $imgName... "
+		echo -ne "\n*** DRYRUN: would have ran the following to pull: \n"
+		echo -ne "\t*** 			crane pull $imgName $makeDir/${imgLogName}.tar"
 	fi
-	echo -e "Done"
-	# transform slashes in the image name to underscores for the logfile name
-	imgLogName=`echo $imgName | sed -e 's/\//_/g'`
+	echo -e "*** Done"
 	echo -ne "*** Scanning image with grype ... "
 	if [ $dryrun -eq 0 ]
 	then
 		if [ $output -eq 0 ]
 		then
-			vulCount=`grype $imgName -q | egrep $sevfilter | tee ${imgLogName}.grypelog | tail -n +2 | wc -l `
+			vulCount=`grype $makeDir/${imgLogName}.tar -q | egrep $sevfilter | tee ${imgLogName}.grypelog | tail -n +2 | wc -l `
 		else
-			echo
-			grype $imgName -q | egrep $sevfilter | tee ${imgLogName}.grypelog | while read line; do echo -e "*** $line"; done
+			
+			grype $makeDir/${imgLogName}.tar -q | egrep $sevfilter | tee ${imgLogName}.grypelog | while read line; do echo -e "*** $line"; done
 			vulCount=`cat ${imgLogName}.grypelog | tail -n +2 | wc -l`
 			echo -en "*** "
 		fi
@@ -169,7 +190,7 @@ do
 	else
 		vulCount=0
 		echo -ne "\n*** DRYRUN: Would have run the following: \n"
-		echo -ne "***        grype $imgName -q | tee ${imgLogName}.grypelog ... "
+		echo -ne "***        grype $makeDir/${imgLogName}.tar -q | tee ${imgLogName}.grypelog ... "
 	fi
 	echo -e "Done."
 	if [ "$vulCount" == "" ]
@@ -178,11 +199,10 @@ do
 		returnCode=2
 		continue
 	fi
-	if [ $cleanup -eq 1 ] && [ $dryrun -eq 0 ]
-	then	
-		echo -e "*** Cleaning up image"
-		docker rmi $imgName > /dev/null 2>&1
-	fi
+	
+	echo -e "*** Cleaning up image"
+	rm -f $makeDir/${imgLogName}.tar
+	
 	if [ $dryrun -eq 0 ]
 	then
 		if [ $vulCount -eq 0 ]
