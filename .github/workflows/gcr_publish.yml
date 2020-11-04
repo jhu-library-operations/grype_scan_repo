@@ -16,6 +16,10 @@ jobs:
 
       - name: Check out the repo
         uses: actions/checkout@v2
+      
+      - id: tag_prep
+        run:
+          echo ::set-output name=short-ref::$(echo ${{ github.ref }} | sed -e 's/refs\/tag\//g')
 
       - name: Push to GitHub Container Registry
         uses: docker/build-push-action@v2
@@ -24,7 +28,7 @@ jobs:
           push: true
           tags: |
             ghcr.io/${{ github.repository }}/grype-scan-rep:ubuntu-latest
-            ghcr.io/${{ github.repository }}/grype-scan-rep:${{ github.ref }}
+            ghcr.io/${{ github.repository }}/grype-scan-rep:${{ steps.tag_prep.outputs.short-ref }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
             org.opencontainers.image.title=Grype-Scan-Repo
