@@ -10,6 +10,7 @@ output=0
 sevfilter="(Critical|High|Medium|Low|Unknown)"
 totalvulcount=0
 warning=0 
+grype_tag=v0.2.0
 
 while [ $# -gt 0 ]
 do
@@ -83,6 +84,24 @@ then
 	fi
 
 	cd grype 
+	
+	git fetch --all --tags #> /dev/null 2>&1
+	if [ $? -ne 0 ]
+	then
+		echo "Error: Unable to fetch grype tags"
+		cd $oldDir
+		rm -rf $makeDir
+		exit 1
+	fi
+
+	git checkout tags/$grype_tag -b build
+	if [ $? -ne 0 ]
+	then
+		echo "Error: Unable to checkout grype branch: $grype_tag"
+		cd $oldDir
+		rm -rf $makeDir
+		exit 1
+	fi
 	go build -o grype.bin
 	if [ $? -ne 0 ]
 	then	
