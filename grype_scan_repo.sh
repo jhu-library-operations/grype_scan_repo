@@ -50,7 +50,7 @@ do
 			echo -e "\t-k          Scan for *.yml and *.yaml files (kubernetes) "
 			echo -e "\t--dry-run   Does a dry run, doesn't pull images or scan."
 			echo -e "\t-o          Show output instead of logging it."
-			echo -e "\t-i          Install grype into ~/bin/ and exit."
+			echo -e "\t-i          Install grype and crane into ~/bin/ and exit."
 			echo -e "\t-s <filter> The severities to filter for, an egrep pattern. "
 			echo -e "\t              (default: '(Critical|High|Medium|Low|Unknown)'"
 			echo -e "\t-h|--help  Display this help.\n"
@@ -181,7 +181,7 @@ do
 		then
 			vulCount=`grype $makeDir/${imgLogName}.tar -q | egrep $sevfilter | tee ${imgLogName}.grypelog | tail -n +2 | wc -l `
 		else
-			
+			echo
 			grype $makeDir/${imgLogName}.tar -q | egrep $sevfilter | tee ${imgLogName}.grypelog | while read line; do echo -e "*** $line"; done
 			vulCount=`cat ${imgLogName}.grypelog | tail -n +2 | wc -l`
 			echo -en "*** "
