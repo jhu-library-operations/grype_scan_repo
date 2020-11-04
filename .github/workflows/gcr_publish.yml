@@ -8,7 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - id: ghcr_login
-        uses: docker/login@v1
+        uses: docker/login-action@v1
         with:
             registry: ghci.io
             username: ${{ secrets.DEREK_GHCR_UNAME }}
