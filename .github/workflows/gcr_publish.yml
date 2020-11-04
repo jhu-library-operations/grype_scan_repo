@@ -7,13 +7,24 @@ jobs:
     name: Push Docker image to GitHub Packages
     runs-on: ubuntu-latest
     steps:
+      - id: ghcr_login
+        uses: docker/login@v1
+        with:
+            registry: ghci.io
+            username: ${{ secrets.DEREK_GHCR_UNAME }}
+            password: ${{ secrets.DEREK_GHCR_PAT }}
+
       - name: Check out the repo
         uses: actions/checkout@v2
-      - name: Push to GitHub Packages
-        uses: docker/build-push-action@v1
+
+      - name: Push to GitHub Container Registry
+        uses: docker/build-push-action@v2
         with:
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-          registry: docker.pkg.github.com
-          repository: jhu-library-operations/grype_scan_repo/grype-scan-repo
-          tag_with_ref: true
+          context: .
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}/grype-scan-rep:ubuntu-latest
+            ghcr.io/${{ github.repository }}/grype-scan-rep:${{ github.ref }}
+          labels: |
+            org.opencontainers.image.source=https://github.com/${{ github.repository }}
+            org.opencontainers.image.title=Grype-Scan-Repo
