@@ -30,7 +30,7 @@ jobs:
           context: .
           push: true
           tags: |
-            ghcr.io/${{ github.repository }}/grype-scan-repo:ubuntu-latest
+            ghcr.io/${{ github.repository }}/grype-scan-repo:latest
             ghcr.io/${{ github.repository }}/grype-scan-repo:${{ steps.tag_prep.outputs.short-ref }}
           labels: |
             org.opencontainers.image.source=https://github.com/${{ github.repository }}
