@@ -9,6 +9,8 @@ cleanup=0
 output=0 
 sevfilter="(Critical|High|Medium|Low|Unknown)"
 totalvulcount=0
+warning=0 
+
 while [ $# -gt 0 ]
 do
 	key="$1"
@@ -167,7 +169,8 @@ do
 		if [ $? -ne 0 ]
 		then	
 			echo "Error: Unable to pull $imgName" >&2
-			exit 1
+			# this is a non fatal error so set the warning flag and keep going.
+			warning=1
 		fi
 	else
 		echo -ne "\n*** DRYRUN: would have ran the following to pull: \n"
@@ -225,6 +228,14 @@ if [ "$returnCode" == "1" ]
 then
 	echo "Error: $totalvulcount Vulnerabilities found."
 fi
+
+# if there were non-fatal warnings/errors, return zero so 
+# the user knows something went wrong.
+if [ $warning -eq 1 ]
+then
+	returnCode=1
+fi
+
 # clean up ourselves
 rm -rf $makeDir
 exit $returnCode
