@@ -19,7 +19,7 @@ jobs:
       
       - id: tag_prep
         run:
-          echo ::set-output name=short-ref::$(echo ${{ github.ref }} | sed -e 's/refs\/tag\//g')
+          echo ::set-output name=short-ref::$(echo ${{ github.ref }} | sed -e 's/refs\/tag\///g')
 
       - name: Push to GitHub Container Registry
         uses: docker/build-push-action@v2
