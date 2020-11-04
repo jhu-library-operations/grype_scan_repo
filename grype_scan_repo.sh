@@ -182,11 +182,11 @@ do
 	then
 		if [ $output -eq 0 ]
 		then
-			vulCount=`grype $makeDir/${imgLogName}.tar -q | egrep $sevfilter | tee ${imgLogName}.grypelog | tail -n +2 | wc -l `
+			vulCount=`grype $makeDir/${imgLogName}.tar -q | egrep $sevfilter | tee ${imgLogName}.grypelog |  wc -l `
 		else
 			echo
 			grype $makeDir/${imgLogName}.tar -q | egrep $sevfilter | tee ${imgLogName}.grypelog | while read line; do echo -e "*** $line"; done
-			vulCount=`cat ${imgLogName}.grypelog | tail -n +2 | wc -l`
+			vulCount=`cat ${imgLogName}.grypelog | wc -l`
 			echo -en "*** "
 		fi
 		totalvulcount=$((totalvulcount + vulCount))
