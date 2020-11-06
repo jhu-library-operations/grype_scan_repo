@@ -22,12 +22,12 @@ do
 			;;
 		-c)
 			dockerfile='.*\/docker-compose.yml'
-			imageline=".*image:"
+			imageline="\s*image:"
 			shift # past the arg
 			;;
 		-k)
 			dockerfile='.*.\(yml\|yaml\)'
-			imageline=".*image:"
+			imageline="^\s*image:"
 			shift #past the arg
 			;;
 		-i) 
@@ -162,7 +162,7 @@ do
 	dFileDir=`dirname $dFile`
 
 	# grab the list of images to grab from this file
-	for imgName in `cat $dFile | grep $imageline | sed -e "s/$imageline //g" | sed -e "s/ as .*$//"`
+	for imgName in `cat $dFile | grep $imageline | grep -v '^\s*#' | sed -e "s/$imageline //g" | sed -e "s/ as .*$//"`
 	do
 		# add the image name to the list
 		echo $imgName >> $imgList
@@ -212,7 +212,7 @@ do
 	else
 		vulCount=0
 		echo -ne "\n*** DRYRUN: Would have run the following: \n"
-		echo -ne "***        grype $makeDir/${imgLogName}.tar -q | tee ${imgLogName}.grypelog ... "
+		echo -ne "***        grype $makeDir/${imgLogName}.tar -q | egrep $sevfilter | tee ${imgLogName}.grypelog ... "
 	fi
 	echo -e "Done."
 	if [ "$vulCount" == "" ]
