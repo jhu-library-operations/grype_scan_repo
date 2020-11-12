@@ -3,13 +3,18 @@ A wrapper around the grype command that should allow you to scan Dockerfiles, do
 
 
 ```
-./grype_scan_repo.sh: [-ci] [-h|--help]
-        -c         Scan for docker-compose.yml files instead of Dockerfiles
-        -k         Scan for *.yml and *.yaml files (kubernetes) 
-        --dry-run  Does a dry run, doesn't pull images or scan.
-        -o         Show the vulnerablility output on stdout
-        -i         Install grype and crane into ~/bin/ and exit.
-        -h|--help  Display this help.
+./grype_scan_repo.sh: [-ciko] [--dry-run] [-s <egrep_severity_filter>] [-f <egrep_package_exclude_filter>] [-h|--help]
+
+        -c              Scan for docker-compose.yml files instead of Dockerfiles
+        -k              Scan for *.yml and *.yaml files (kubernetes)
+        --dry-run       Does a dry run, doesn't pull images or scan.
+        -o              Show output instead of logging it.
+        -i              Install grype and crane into ~/bin/ and exit.
+        -s <severity>   The severities to filter for, an egrep pattern.
+                        (default: '(Unknown|Negligible|Low|Medium|High|Critical)')
+        -f <pkg-filter> Package names to filter out, this is an egrep pattern to EXCLUDE pattern.
+        -h|--help       Display this help.
+
 ```
 
 ## Installation

@@ -54,7 +54,7 @@ do
 			shift # the value
 			;;
 		-h|--help)
-			echo -e "\n$0: [-ci] [-h|--help]"
+			echo -e "\n$0: [-ciko] [--dry-run] [-s <egrep_severity_filter>] [-f <egrep_package_exclude_filter>] "
 			echo -e "\t-c              Scan for docker-compose.yml files instead of Dockerfiles"
 			echo -e "\t-k              Scan for *.yml and *.yaml files (kubernetes) "
 			echo -e "\t--dry-run       Does a dry run, doesn't pull images or scan."
