@@ -7,10 +7,11 @@ install=0
 dryrun=0
 cleanup=0
 output=0 
-sevfilter="(Critical|High|Medium|Low|Unknown)"
+sevfilter="(Unknown|Negligible|Low|Medium|High|Critical)"
 totalvulcount=0
 warning=0 
 grype_tag=v0.2.0
+pkgfilter='!(.*)' # do not filter anything.
 
 while [ $# -gt 0 ]
 do
@@ -47,16 +48,22 @@ do
 			shift # the arg
 			shift # the value
 			;;
+		-f)
+			pkgfilter=$2
+			shift # the arg
+			shift # the value
+			;;
 		-h|--help)
 			echo -e "\n$0: [-ci] [-h|--help]"
-			echo -e "\t-c          Scan for docker-compose.yml files instead of Dockerfiles"
-			echo -e "\t-k          Scan for *.yml and *.yaml files (kubernetes) "
-			echo -e "\t--dry-run   Does a dry run, doesn't pull images or scan."
-			echo -e "\t-o          Show output instead of logging it."
-			echo -e "\t-i          Install grype and crane into ~/bin/ and exit."
-			echo -e "\t-s <filter> The severities to filter for, an egrep pattern. "
-			echo -e "\t              (default: '(Critical|High|Medium|Low|Unknown)'"
-			echo -e "\t-h|--help  Display this help.\n"
+			echo -e "\t-c              Scan for docker-compose.yml files instead of Dockerfiles"
+			echo -e "\t-k              Scan for *.yml and *.yaml files (kubernetes) "
+			echo -e "\t--dry-run       Does a dry run, doesn't pull images or scan."
+			echo -e "\t-o              Show output instead of logging it."
+			echo -e "\t-i              Install grype and crane into ~/bin/ and exit."
+			echo -e "\t-s <severity>   The severities to filter for, an egrep pattern. "
+			echo -e "\t                (default: '(Unknown|Negligible|Low|Medium|High|Critical)')"
+			echo -e "\t-f <pkg-filter> Package names to filter out, this is an egrep pattern to EXCLUDE pattern."
+			echo -e "\t-h|--help       Display this help.\n"
 			exit 1
 			;;
 		*)
@@ -193,7 +200,7 @@ do
 		fi
 	else
 		echo -ne "\n*** DRYRUN: would have ran the following to pull: \n"
-		echo -ne "\t*** 			crane pull $imgName $makeDir/${imgLogName}.tar"
+		echo -ne "*** 			crane pull $imgName $makeDir/${imgLogName}.tar\n"
 	fi
 	echo -e "*** Done"
 	echo -ne "*** Scanning image with grype ... "
@@ -201,20 +208,22 @@ do
 	then
 		if [ $output -eq 0 ]
 		then
-			vulCount=`grype $makeDir/${imgLogName}.tar -q | egrep $sevfilter | tee ${imgLogName}.grypelog |  wc -l `
+			vulCount=`grype $makeDir/${imgLogName}.tar -q | egrep $sevfilter | egrep -v "$pkgfilter" | tail -n +2 | tee ${imgLogName}.grypelog |  wc -l `
 		else
 			echo
-			grype $makeDir/${imgLogName}.tar -q | egrep $sevfilter | tee ${imgLogName}.grypelog | while read line; do echo -e "*** $line"; done
-			vulCount=`cat ${imgLogName}.grypelog | wc -l`
+			grype $makeDir/${imgLogName}.tar -q | egrep $sevfilter | egrep -v "$pkgfilter" | tee ${imgLogName}.grypelog | while read line; do echo -e "*** $line"; done
+			vulCount=`cat ${imgLogName}.grypelog | tail -n +2 | wc -l`
 			echo -en "*** "
 		fi
 		totalvulcount=$((totalvulcount + vulCount))
+		echo -e "Done."
 	else
 		vulCount=0
 		echo -ne "\n*** DRYRUN: Would have run the following: \n"
-		echo -ne "***        grype $makeDir/${imgLogName}.tar -q | egrep $sevfilter | tee ${imgLogName}.grypelog ... "
+		echo -ne "***        grype $makeDir/${imgLogName}.tar -q | egrep $sevfilter | egrep -v "$pkgfilter" | tail -n +2 | tee ${imgLogName}.grypelog ... \n"
+		echo -ne "*** Done \n"
 	fi
-	echo -e "Done."
+	
 	if [ "$vulCount" == "" ]
 	then
 		echo -e "*** Error running grype.\n"
