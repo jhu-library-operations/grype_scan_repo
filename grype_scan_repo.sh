@@ -10,7 +10,7 @@ output=0
 sevfilter="(Unknown|Negligible|Low|Medium|High|Critical)"
 totalvulcount=0
 warning=0 
-grype_tag=v0.2.0
+grype_tag=v0.4.0
 pkgfilter='!(.*)' # do not filter anything.
 
 while [ $# -gt 0 ]
